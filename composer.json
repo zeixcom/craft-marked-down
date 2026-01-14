@@ -1,0 +1,52 @@
+{
+  "name": "zeix/craft-marked-down",
+  "description": "Marked Down detects Accept headers and user agents to serve raw Markdown to command-line tools and APIs, while browsers get the full HTML treatment. Perfect for documentation sites, blogs, and content that needs to work everywhere",
+  "type": "craft-plugin",
+  "version": "1.0.0",
+  "license": "mit",
+  "support": {
+    "email": "webmaster@zeix.com"
+  },
+  "authors": [
+    {
+      "name": "Zeix AG",
+      "homepage": "https://zeix.com"
+    }
+  ],
+  "require": {
+    "php": ">=8.2",
+    "craftcms/cms": "^5.8.0",
+    "league/html-to-markdown": "^5.0"
+  },
+  "require-dev": {
+    "craftcms/ecs": "dev-main",
+    "craftcms/phpstan": "dev-main"
+  },
+  "autoload": {
+    "psr-4": {
+      "zeix\\craftmarkeddown\\": "src/"
+    }
+  },
+  "extra": {
+    "handle": "marked-down",
+    "name": "Marked Down",
+    "developer": "Zeix AG",
+    "documentationUrl": "https://github.com/zeixcom/craft-marked-down/blob/main/README.md",
+    "class": "zeix\\craftmarkeddown\\MarkedDown"
+  },
+  "scripts": {
+    "check-cs": "ecs check --ansi",
+    "fix-cs": "ecs check --ansi --fix",
+    "phpstan": "phpstan --memory-limit=1G"
+  },
+  "config": {
+    "sort-packages": true,
+    "platform": {
+      "php": "8.2"
+    },
+    "allow-plugins": {
+      "yiisoft/yii2-composer": true,
+      "craftcms/plugin-installer": true
+    }
+  }
+}

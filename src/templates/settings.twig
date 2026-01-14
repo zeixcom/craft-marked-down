@@ -1,0 +1,64 @@
+{% import '_includes/forms' as forms %} {% block content %}
+<div class="field first">
+  {{ forms.lightswitchField({
+        label: 'Enable Marked Down'|t('marked-down'),
+        name: 'enabled',
+        id: 'enabled',
+        on: settings.enabled,
+        className: 'first'
+    }) }}
+</div>
+
+<hr />
+
+<div class="field">
+  {{ forms.textareaField({
+        label: 'Excluded Paths'|t('marked-down'),
+        name: 'excludePathsString',
+        id: 'excludePathsString',
+        value: settings.getExcludePathsString(),
+        rows: 5,
+        instructions: 'Enter one path per line. These paths will always serve HTML, never Markdown. Supports wildcards (e.g., "/actions/*").'|t('marked-down'),
+        placeholder: '/admin' ~ "\n" ~ '/actions/*' ~ "\n" ~ '/cpresources/*',
+    }) }}
+</div>
+
+<div class="field">
+  {{ forms.textareaField({
+    label: 'Include Only Paths (Optional)'|t('marked-down'),
+    name: 'includeOnlyPathsString',
+    id: 'includeOnlyPathsString',
+    value: settings.getIncludeOnlyPathsString(),
+    rows: 5,
+    instructions: 'Leave empty to include all paths (except excluded ones). If specified, only these paths will serve Markdown. Supports wildcards (e.g., "/docs/*").'|t('marked-down'),
+    placeholder: '/docs/*',
+}) }}
+</div>
+
+<hr />
+
+<h2>{{ 'Caching'|t('marked-down') }}</h2>
+
+<div class="field">
+  {{ forms.lightswitchField({
+        label: 'Enable Caching'|t('marked-down'),
+        name: 'enableCache',
+        id: 'enableCache',
+        on: settings.enableCache,
+        instructions: 'Cache generated Markdown to reduce server load. Recommended for production.'|t('marked-down'),
+    }) }}
+</div>
+
+<div class="field">
+  {{ forms.textField({
+        label: 'Cache Duration (seconds)'|t('marked-down'),
+        name: 'cacheDuration',
+        id: 'cacheDuration',
+        value: settings.cacheDuration,
+        type: 'number',
+        min: 0,
+        instructions: 'How long to cache generated Markdown in seconds. Default: 86400 (24 hours).'|t('marked-down'),
+    }) }}
+</div>
+
+{% endblock %}
