@@ -124,6 +124,60 @@ return [
 
 **Note:** Complex selectors like descendant selectors (`.parent .child`) or pseudo-classes (`:hover`) are not currently supported. See `config.example.php` for more details.
 
+## CLI Commands
+
+Marked Down includes powerful command-line tools for testing and debugging:
+
+### Test Conversion
+
+Test the markdown conversion with sample HTML to verify everything is working:
+
+```bash
+./craft marked-down/default/test-conversion
+# or with DDEV
+ddev craft marked-down/default/test-conversion
+```
+
+This runs a comprehensive test that validates headings, bold, italic, links, images, lists, and tables.
+
+### Convert URL
+
+Fetch and convert any URL to markdown:
+
+```bash
+./craft marked-down/default/convert https://example.com
+# or with DDEV
+ddev craft marked-down/default/convert https://example.com
+```
+
+Add `--verbose` to see the original HTML:
+
+```bash
+./craft marked-down/default/convert https://example.com --verbose
+```
+
+### Clear Cache
+
+Clear all cached markdown conversions:
+
+```bash
+./craft marked-down/default/cache-clear
+# or with DDEV
+ddev craft marked-down/default/cache-clear
+```
+
+### Plugin Info
+
+View current plugin configuration and status:
+
+```bash
+./craft marked-down
+# or with DDEV
+ddev craft marked-down
+```
+
+Shows enabled status, cache settings, excluded/included paths, and config file location.
+
 ## Requirements
 
 - Craft CMS 5.8.0+

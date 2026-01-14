@@ -38,6 +38,30 @@ class MarkedDown extends Plugin
         ];
     }
 
+    /**
+     * @inheritdoc
+     */
+    public function getCpNavItem(): ?array
+    {
+        $item = parent::getCpNavItem();
+        $item['subnav'] = [
+            'settings' => ['label' => 'Settings', 'url' => 'marked-down/settings'],
+        ];
+        return $item;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function controllerNamespace(): string
+    {
+        if (Craft::$app instanceof \craft\console\Application) {
+            return 'zeix\\craftmarkeddown\\console\\controllers';
+        }
+
+        return 'zeix\\craftmarkeddown\\controllers';
+    }
+
     public function init(): void
     {
         parent::init();
