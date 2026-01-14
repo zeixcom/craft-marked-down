@@ -1,34 +1,78 @@
 # Marked Down
 
-A Craft CMS plugin that serves Markdown content to requests with the `Accept: text/markdown` header, while browsers continue to receive HTML.
+A Craft CMS plugin that intelligently serves Markdown content to AI tools, APIs, and command-line clients, while browsers continue to receive HTML.
 
-## Why?
+## Why Marked Down?
 
-When LLMs, APIs, or scraping tools request your site, they typically receive full HTML with navigation, headers, footers, and styling—adding unnecessary complexity and tokens. Marked Down serves clean Markdown instead:
+### The Problem
 
-- **Reduced token usage**: Markdown is typically 10-15x smaller than HTML
-- **Better for LLMs**: Clean, structured content without HTML noise
-- **Standard compliant**: Uses HTTP content negotiation (`Accept` header)
-- **Non-breaking**: Browsers continue to receive HTML as normal
+Modern websites are designed for humans viewing them in browsers—complete with navigation menus, sidebars, footers, analytics scripts, and styling. But when AI tools like ChatGPT, Claude scrape your site, they get the entire HTML payload.
 
-Perfect for documentation sites, blogs, and any content that needs to work well with modern AI tools while maintaining a great browser experience.
+Result: **Wasted tokens, confused AI models, cluttered API responses, and poor developer experience.**
+
+### The Solution
+
+Marked Down uses HTTP content negotiation to serve clean, semantic Markdown when appropriate:
+
+
+**Benefits:**
+- 🎯 **10-15x smaller responses** - Markdown is dramatically more compact than HTML
+- 🤖 **Better AI understanding** - LLMs process clean Markdown more effectively than noisy HTML
+- 🔌 **Standard HTTP** - Uses the `Accept: text/markdown` header (proper content negotiation)
+- 🌐 **Zero impact on browsers** - Your website looks and works exactly the same for human visitors
+- ⚡ **Built-in caching** - Fast responses with configurable cache duration
+- 🎨 **Smart extraction** - Automatically finds and converts your main content, stripping navigation and boilerplate
+
+### Real-World Use Cases
+
+- **Documentation sites** - Let AI assistants cite your docs accurately
+- **Technical blogs** - Make your content easily consumable by AI tools
+- **API documentation** - Serve both human-readable HTML and machine-readable Markdown
+- **Content APIs** - Provide Markdown output without building separate endpoints
+- **AI training** - Offer clean content for AI model training datasets
+- **Command-line tools** - Enable CLI users to read your content in their terminal
+
+Perfect for any site where content matters more than chrome.
 
 ## Installation
+
+### Standard Installation
 
 ```bash
 composer require zeix/craft-marked-down
 ./craft plugin/install marked-down
 ```
 
-## Usage
+### DDEV Installation
 
-Add the `Accept: text/markdown` header to your HTTP requests:
+If you're using DDEV for local development:
 
 ```bash
-curl -H "Accept: text/markdown" https://yoursite.com/
+ddev composer require zeix/craft-marked-down
+ddev craft plugin/install marked-down
 ```
 
-Normal browser requests continue to receive HTML. Only requests with the `Accept: text/markdown` header get Markdown.
+## How It Works
+
+Marked Down uses **HTTP content negotiation** - a standard web protocol where clients tell servers what format they prefer. When a request includes the `Accept: text/markdown` header, the plugin automatically converts your HTML response to clean Markdown.
+
+### Quick Test
+
+Try it with curl:
+
+```bash
+# Get Markdown
+curl -H "Accept: text/markdown" https://yoursite.com/blog/my-article
+
+# Get HTML (default)
+curl https://yoursite.com/blog/my-article
+```
+
+**What happens behind the scenes:**
+
+1. Plugin checks if request has `Accept: text/markdown` header
+2. If yes: Extracts main content, converts to Markdown
+3. If no: Serves normal HTML (zero impact on regular traffic)
 
 ## Configuration
 
@@ -43,29 +87,56 @@ Navigate to **Settings → Plugins → Marked Down**:
 
 ### Config File
 
-Create `config/marked-down.php` to exclude CSS selectors from Markdown output:
+Create `config/marked-down.php` to exclude specific CSS selectors from Markdown output:
 
 ```php
 <?php
 return [
+    // Global exclusions - applied to all pages
     'globalExclusions' => [
         '.sidebar',
         '#comments',
+        '.social-share',
+        'nav.secondary',
     ],
+
+    // Template-specific exclusions - applied only to specific templates
     'templateExclusions' => [
-        'home/_entry' => ['.sidebar', '.related-posts'],
-        'blog/_entry' => ['#comments', '.author-bio'],
+        'blog/_entry' => ['.author-bio', '#related-posts'],
+        'news/_entry' => ['#comments', '.share-buttons'],
+        '_layouts/article' => ['.sidebar'],
     ],
 ];
 ```
 
-Template paths should match your template file structure (e.g., `home/_entry` for `templates/home/_entry.twig`). See `config.example.php` for a complete example.
+**How it works:**
+- **Global exclusions** are applied to all pages
+- **Template exclusions** are only applied when a specific template is rendered
+- Template paths should match your template file structure (e.g., `blog/_entry` for `templates/blog/_entry.twig`)
+- Both `.twig` extension and without work (e.g., `blog/_entry` or `blog/_entry.twig`)
+
+**Supported CSS Selectors:**
+- `#id` - ID selectors
+- `.class` - Class selectors
+- `element` - Element selectors (e.g., `nav`, `aside`)
+- `element#id` - Combined element and ID
+- `element.class` - Combined element and class
+
+**Note:** Complex selectors like descendant selectors (`.parent .child`) or pseudo-classes (`:hover`) are not currently supported. See `config.example.php` for more details.
 
 ## Requirements
 
 - Craft CMS 5.8.0+
 - PHP 8.2+
 
+## Credits
+
+Marked Down is built with:
+
+- [league/html-to-markdown](https://github.com/thephpleague/html-to-markdown) - The excellent HTML to Markdown conversion library by The PHP League
+
 ## License
 
 MIT
+
+---

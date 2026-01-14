@@ -30,43 +30,39 @@ class MarkdownService extends Component
      *
      * @param string $html The HTML content to convert
      * @param string|null $cacheKey Optional cache key. If not provided, will be generated from HTML hash
+     * @param string|null $templatePath Optional template path for template-specific exclusions
      * @return string The Markdown content
      */
-    public function convertHtmlToMarkdown(string $html, ?string $cacheKey = null): string
+    public function convertHtmlToMarkdown(string $html, ?string $cacheKey = null, ?string $templatePath = null): string
     {
         if (empty($html)) {
             return '';
         }
 
         $settings = \zeix\craftmarkeddown\MarkedDown::getInstance()->getSettings();
-        
-        // Check cache if enabled
+
         if ($settings->enableCache) {
             if ($cacheKey === null) {
                 $cacheKey = 'marked-down:' . md5($html);
             } else {
                 $cacheKey = 'marked-down:' . $cacheKey;
             }
-            
+
             $cache = Craft::$app->getCache();
             $cached = $cache->get($cacheKey);
-            
+
             if ($cached !== false) {
                 return $cached;
             }
         }
 
-        // 1. Extract and Clean HTML
-        $html = $this->extractMainContent($html);
-        
-        // 2. Convert to Markdown
+        $html = $this->extractMainContent($html, $templatePath);
+
         $converter = $this->getConverter();
         $markdown = $converter->convert($html);
-        
-        // 3. Post-process Markdown
+
         $markdown = $this->cleanMarkdown($markdown);
 
-        // Cache result if enabled
         if ($settings->enableCache && isset($cacheKey)) {
             $cache->set($cacheKey, $markdown, $settings->cacheDuration);
         }
@@ -78,9 +74,10 @@ class MarkdownService extends Component
      * Extract main content from HTML, removing navigation, headers, footers, etc.
      *
      * @param string $html The full HTML document
+     * @param string|null $templatePath Optional template path for template-specific exclusions
      * @return string The extracted main content HTML
      */
-    public function extractMainContent(string $html): string
+    public function extractMainContent(string $html, ?string $templatePath = null): string
     {
         if (empty($html)) {
             return '';
@@ -90,14 +87,12 @@ class MarkdownService extends Component
         $dom = new \DOMDocument();
         $dom->encoding = 'UTF-8';
 
-        // Fix encoding issues
         $html = mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8');
         @$dom->loadHTML('<?xml encoding="UTF-8">' . $html);
         libxml_clear_errors();
 
         $xpath = new \DOMXPath($dom);
 
-        // Define content containers in order of preference
         $selectors = [
             '//main',
             '//article',
@@ -113,15 +108,13 @@ class MarkdownService extends Component
             $nodes = $xpath->query($selector);
             if ($nodes->length > 0) {
                 foreach ($nodes as $node) {
-                    // Avoid adding nested nodes if we already have the parent
                     $isNested = false;
                     foreach ($contentNodes as $existingNode) {
                         if ($node->isSameNode($existingNode)) {
                             $isNested = true;
                             break;
                         }
-                        
-                        // Check if $node is a descendant of $existingNode
+
                         $parent = $node->parentNode;
                         while ($parent !== null) {
                             if ($parent->isSameNode($existingNode)) {
@@ -135,8 +128,6 @@ class MarkdownService extends Component
                         $contentNodes[] = $node;
                     }
                 }
-                // If we found high-priority nodes (main/article), we might want to stop
-                // but for now let's be more inclusive and just stop if we found something better than body
                 if ($selector !== '//body') {
                     break;
                 }
@@ -147,13 +138,11 @@ class MarkdownService extends Component
             return $html;
         }
 
-        // Clean up each content node
         foreach ($contentNodes as $node) {
             $this->removeUnwantedElements($xpath, $node);
-            $this->applyConfigExclusions($xpath, $node);
+            $this->applyConfigExclusions($xpath, $node, $templatePath);
         }
 
-        // Combine HTML from all content nodes
         $resultHtml = '';
         foreach ($contentNodes as $node) {
             $nodeHtml = '';
@@ -164,16 +153,13 @@ class MarkdownService extends Component
             } else {
                 $nodeHtml = $dom->saveHTML($node);
             }
-            
-            // Clean excessive indentation while preserving block structure for markdown conversion
-            // Remove leading/trailing whitespace on each line
+
             $lines = explode("\n", $nodeHtml);
             $lines = array_map('trim', $lines);
             $nodeHtml = implode("\n", $lines);
 
-            // Remove multiple consecutive newlines but keep single newlines for block structure
             $nodeHtml = preg_replace('/\n{2,}/', "\n", $nodeHtml);
-            
+
             $resultHtml .= $nodeHtml . "\n";
         }
 
@@ -185,8 +171,9 @@ class MarkdownService extends Component
      *
      * @param \DOMXPath $xpath
      * @param \DOMElement|\DOMNode $context
+     * @param string|null $templatePath Template path for template-specific exclusions
      */
-    protected function applyConfigExclusions(\DOMXPath $xpath, $context): void
+    protected function applyConfigExclusions(\DOMXPath $xpath, $context, ?string $templatePath = null): void
     {
         $config = $this->getConfigFileData();
         if (empty($config)) {
@@ -194,23 +181,24 @@ class MarkdownService extends Component
         }
 
         $exclusions = [];
-        
-        // Get global exclusions
+
         if (isset($config['globalExclusions']) && is_array($config['globalExclusions'])) {
             $exclusions = array_merge($exclusions, $config['globalExclusions']);
         }
 
-        // Get template-based exclusions (if we can determine the template)
-        // For now, we'll use a simple approach - this can be extended later
-        if (isset($config['templateExclusions']) && is_array($config['templateExclusions'])) {
-            // Try to get current template path from view
-            try {
-                $view = Craft::$app->getView();
-                $template = $view->getTemplateMode();
-                // Template detection is complex, so we'll skip template-specific exclusions for now
-                // and just use global exclusions
-            } catch (\Throwable $e) {
-                // Silently fail
+        if ($templatePath && isset($config['templateExclusions']) && is_array($config['templateExclusions'])) {
+            $normalizedPath = preg_replace('/\.twig$/', '', $templatePath);
+
+            foreach ($config['templateExclusions'] as $pattern => $selectors) {
+                $normalizedPattern = preg_replace('/\.twig$/', '', $pattern);
+
+                if ($normalizedPath === $normalizedPattern ||
+                    str_ends_with($normalizedPath, '/' . $normalizedPattern) ||
+                    str_contains($normalizedPath, $normalizedPattern)) {
+                    if (is_array($selectors)) {
+                        $exclusions = array_merge($exclusions, $selectors);
+                    }
+                }
             }
         }
 
@@ -236,7 +224,6 @@ class MarkdownService extends Component
                 continue;
             }
 
-            // Convert simple CSS selectors to XPath
             $xpathSelector = $this->cssSelectorToXPath($selector);
             if ($xpathSelector === null) {
                 continue;
@@ -250,7 +237,6 @@ class MarkdownService extends Component
                     }
                 }
             } catch (\Throwable $e) {
-                // Skip invalid selectors
                 Craft::warning(
                     'Marked Down: Invalid CSS selector in config: ' . $selector,
                     __METHOD__
@@ -269,35 +255,29 @@ class MarkdownService extends Component
     protected function cssSelectorToXPath(string $selector): ?string
     {
         $selector = trim($selector);
-        
-        // ID selector: #id
+
         if (str_starts_with($selector, '#')) {
             $id = substr($selector, 1);
             return "//*[@id='" . addslashes($id) . "']";
         }
-        
-        // Class selector: .class
+
         if (str_starts_with($selector, '.')) {
             $class = substr($selector, 1);
             return "//*[contains(concat(' ', normalize-space(@class), ' '), ' " . addslashes($class) . " ')]";
         }
-        
-        // Element selector: element
+
         if (preg_match('/^[a-zA-Z][a-zA-Z0-9_-]*$/', $selector)) {
             return '//' . $selector;
         }
-        
-        // Element#id: element#id
+
         if (preg_match('/^([a-zA-Z][a-zA-Z0-9_-]*)#([a-zA-Z][a-zA-Z0-9_-]*)$/', $selector, $matches)) {
             return "//{$matches[1]}[@id='" . addslashes($matches[2]) . "']";
         }
-        
-        // Element.class: element.class
+
         if (preg_match('/^([a-zA-Z][a-zA-Z0-9_-]*)\.([a-zA-Z][a-zA-Z0-9_-]*)$/', $selector, $matches)) {
             return "//{$matches[1]}[contains(concat(' ', normalize-space(@class), ' '), ' " . addslashes($matches[2]) . " ')]";
         }
-        
-        // For more complex selectors, return null (could be extended with a proper CSS selector parser)
+
         return null;
     }
 
@@ -316,7 +296,6 @@ class MarkdownService extends Component
             $config = Craft::$app->config->getConfigFromFile('marked-down');
             $this->configFileData = is_array($config) ? $config : [];
         } catch (\Throwable $e) {
-            // Config file doesn't exist or is invalid - that's fine
             $this->configFileData = [];
         }
 
@@ -362,21 +341,18 @@ class MarkdownService extends Component
      */
     public function cleanMarkdown(string $markdown): string
     {
-        // 1. Normalize line endings
         $markdown = str_replace(["\r\n", "\r"], "\n", $markdown);
-
-        // 2. Decode HTML entities (e.g., &amp; -> &, &nbsp; -> space)
+        
         $markdown = html_entity_decode($markdown, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        // 3. Fix known converter quirks
         $markdown = preg_replace('/!\s+\[/', '![', $markdown);
+
         $markdown = preg_replace('/\[\s+/', '[', $markdown);
+
         $markdown = preg_replace('/\s+\]/', ']', $markdown);
 
-        // 4. Remove excessive newlines while preserving single empty lines for paragraph separation
         $markdown = preg_replace('/\n{3,}/', "\n\n", $markdown);
 
-        // 5. Remove empty headers that might have been generated
         $markdown = preg_replace('/^#{1,6}\s*$/m', '', $markdown);
 
         return trim($markdown);
@@ -391,7 +367,7 @@ class MarkdownService extends Component
     protected function fixImageFormatting(string $markdown): string
     {
         $markdown = preg_replace('/!\s+\[/m', '![', $markdown);
-        
+
         $markdown = preg_replace_callback(
             '/!\[([^\]]+)\]\(([^)]+)\)/',
             function ($matches) {
@@ -401,11 +377,11 @@ class MarkdownService extends Component
             },
             $markdown
         );
-        
+
         $markdown = preg_replace('/!\[\s+([^\]]+)\s+\]\(/', '![$1](', $markdown);
-        
+
         $markdown = preg_replace('/!\[([^\]]+)\]\s+\(/', '![$1](', $markdown);
-        
+
         return $markdown;
     }
 
@@ -418,17 +394,17 @@ class MarkdownService extends Component
     protected function fixLineBreaks(string $markdown): string
     {
         $markdown = preg_replace('/([^\n])(#{1,6}\s+)/', "$1\n\n$2", $markdown);
-        
+
         $markdown = preg_replace('/(!\[[^\]]+\]\([^)]+\))([^\n\s])/', "$1\n\n$2", $markdown);
-        
+
         $markdown = preg_replace('/([^\n\s])(!\[[^\]]+\]\([^)]+\))/', "$1\n\n$2", $markdown);
-        
+
         $markdown = preg_replace('/(!\[[^\]]+\]\([^)]+\))\s+(!\[[^\]]+\]\([^)]+\))/', "$1\n\n$2", $markdown);
-        
+
         $markdown = preg_replace('/(!\[[^\]]+\]\([^)]+\))\s+(\[)/', "$1\n\n$2", $markdown);
-        
+
         $markdown = preg_replace('/(\]\([^)]+\))\s+(#{1,6}\s+)/', "$1\n\n$2", $markdown);
-        
+
         return $markdown;
     }
 
@@ -442,17 +418,17 @@ class MarkdownService extends Component
     {
         $lines = explode("\n", $markdown);
         $fixedLines = [];
-        
+
         foreach ($lines as $i => $line) {
             $trimmed = trim($line);
-            
+
             if (empty($trimmed)) {
                 $fixedLines[] = $line;
                 continue;
             }
-            
+
             $fixedLine = $line;
-            
+
             if (preg_match('/^[-*+]\s+/', $trimmed)) {
                 if ($i > 0 && !empty(trim($lines[$i - 1]))) {
                     $prevLine = trim($lines[$i - 1]);
@@ -466,11 +442,11 @@ class MarkdownService extends Component
                 $fixedLines[] = $fixedLine;
             }
         }
-        
+
         $markdown = implode("\n", $fixedLines);
-        
+
         $markdown = preg_replace('/([^\n])\s+([-*+]\s+)/', "$1\n$2", $markdown);
-        
+
         return $markdown;
     }
 
@@ -487,7 +463,7 @@ class MarkdownService extends Component
             function ($matches) {
                 $linkText = $matches[1];
                 $url = trim($matches[2]);
-                
+
                 $headers = [];
                 $linkText = preg_replace_callback(
                     '/\s*(#{1,6}\s+[^\n\]]+)\s*/',
@@ -497,21 +473,21 @@ class MarkdownService extends Component
                     },
                     $linkText
                 );
-                
+
                 $linkText = trim(preg_replace('/\s+/', ' ', $linkText));
                 $linkText = preg_replace('/\s{2,}/', ' ', $linkText);
-                
+
                 $result = '';
                 if (!empty($headers)) {
                     $result = implode("\n\n", $headers) . "\n\n";
                 }
-                
+
                 if (!empty($linkText)) {
                     $result .= '[' . $linkText . '](' . $url . ')';
                 } else {
                     $result .= '[' . $url . '](' . $url . ')';
                 }
-                
+
                 return $result;
             },
             $markdown
@@ -534,18 +510,18 @@ class MarkdownService extends Component
                 $imgUrl = $matches[2];
                 $linkText = trim(preg_replace('/\s+/', ' ', $matches[3]));
                 $linkUrl = $matches[4];
-                
+
                 if (empty($linkText)) {
                     return '![' . $alt . '](' . $imgUrl . ')';
                 }
-                
+
                 return '![' . $alt . '](' . $imgUrl . ') [' . $linkText . '](' . $linkUrl . ')';
             },
             $markdown
         );
 
         $markdown = preg_replace('/!\s+\[/m', '![', $markdown);
-        
+
         $markdown = preg_replace_callback(
             '/!\[([^\]]+)\]\(([^)]+)\)\s+\[([^\]]*(?:\n[^\]]*)*)\]\s*\(([^)]+)\)/s',
             function ($matches) {
@@ -553,10 +529,10 @@ class MarkdownService extends Component
                 $imgUrl = $matches[2];
                 $linkText = trim(preg_replace('/\s+/', ' ', $matches[3]));
                 $linkUrl = $matches[4];
-                
+
                 $linkText = preg_replace('/^#{1,6}\s+/', '', $linkText);
                 $linkText = preg_replace('/\s+/', ' ', $linkText);
-                
+
                 return '![' . $imgAlt . '](' . $imgUrl . ') [' . $linkText . '](' . $linkUrl . ')';
             },
             $markdown
@@ -584,21 +560,21 @@ class MarkdownService extends Component
                 $linkText = trim($matches[1]);
                 $header = trim($matches[2]);
                 $url = trim($matches[3]);
-                
+
                 $cleanLinkText = preg_replace('/\s+/', ' ', $linkText);
-                
+
                 $result = $header . "\n\n";
                 if (!empty($cleanLinkText)) {
                     $result .= '[' . $cleanLinkText . '](' . $url . ')';
                 } else {
                     $result .= '[' . $url . '](' . $url . ')';
                 }
-                
+
                 return $result;
             },
             $markdown
         );
-        
+
         return $markdown;
     }
 
@@ -610,9 +586,8 @@ class MarkdownService extends Component
     protected function getConverter(): HtmlConverter
     {
         if ($this->converter === null) {
-            // Use createDefaultEnvironment to get all the standard converters (headers, emphasis, links, images, etc.)
             $environment = Environment::createDefaultEnvironment([
-                'strip_tags' => true, // Strip tags like span/div but keep content
+                'strip_tags' => true,
                 'use_autolinks' => true,
                 'hard_break' => false,
                 'header_style' => 'atx',

@@ -5,8 +5,10 @@ namespace zeix\craftmarkeddown;
 use Craft;
 use craft\base\Model;
 use craft\base\Plugin;
+use craft\events\TemplateEvent;
 use craft\web\Request;
 use craft\web\Response;
+use craft\web\View;
 use yii\base\Event;
 use yii\web\Application;
 use zeix\craftmarkeddown\models\Settings;
@@ -24,7 +26,7 @@ use zeix\craftmarkeddown\services\MarkdownService;
  */
 class MarkedDown extends Plugin
 {
-    public string $schemaVersion = '1.1.0';
+    public string $schemaVersion = '1.0.0';
     public bool $hasCpSettings = true;
 
     public static function config(): array
@@ -41,8 +43,8 @@ class MarkedDown extends Plugin
         parent::init();
 
         $this->attachEventHandlers();
-        
-        Craft::$app->onInit(function() {
+
+        Craft::$app->onInit(function () {
             $this->attachEventHandlers();
         });
     }
@@ -63,9 +65,23 @@ class MarkedDown extends Plugin
     private function attachEventHandlers(): void
     {
         Event::on(
+            View::class,
+            View::EVENT_AFTER_RENDER_TEMPLATE,
+            function (TemplateEvent $event) {
+                $request = Craft::$app->getRequest();
+                if (!$request->getIsConsoleRequest() && !$request->getIsCpRequest()) {
+                    $url = $request->getAbsoluteUrl();
+                    $cacheKey = 'marked-down-template:' . md5($url);
+
+                    Craft::$app->getCache()->set($cacheKey, $event->template, 60);
+                }
+            }
+        );
+
+        Event::on(
             Response::class,
-            'afterPrepare',
-            function($event) {
+            Response::EVENT_AFTER_PREPARE,
+            function ($event) {
                 $plugin = self::getInstance();
                 if ($plugin) {
                     $plugin->handleResponse($event);
@@ -84,14 +100,14 @@ class MarkedDown extends Plugin
     {
         $request = Craft::$app->getRequest();
         $response = Craft::$app->getResponse();
-        
+
         if ($response->format === Response::FORMAT_RAW && isset($response->data) && is_string($response->data)) {
             $dataPreview = substr($response->data, 0, 10);
             if (!str_starts_with($dataPreview, '<')) {
                 return;
             }
         }
-        
+
         $settings = $this->getSettings();
 
         if (!$settings->enabled) {
@@ -129,16 +145,17 @@ class MarkedDown extends Plugin
                 return;
             }
 
-            // Generate cache key from URL
             $url = $request->getAbsoluteUrl();
             $cacheKey = md5($url);
 
+            $templatePath = Craft::$app->getCache()->get('marked-down-template:' . $cacheKey);
+
             $markdownService = $this->markdownService;
-            $markdown = $markdownService->convertHtmlToMarkdown($html, $cacheKey);
+            $markdown = $markdownService->convertHtmlToMarkdown($html, $cacheKey, $templatePath);
 
             $response->content = $markdown;
             $response->format = Response::FORMAT_RAW;
-            
+
             $response->headers->set('Content-Type', 'text/markdown; charset=UTF-8');
             $response->headers->set('X-Marked-Down', 'Markdown-Served');
         } catch (\Throwable $e) {
@@ -165,7 +182,7 @@ class MarkedDown extends Plugin
         if (empty($acceptHeader) && isset($_SERVER['HTTP_ACCEPT'])) {
             $acceptHeader = $_SERVER['HTTP_ACCEPT'];
         }
-        
+
         return !empty($acceptHeader) && stripos($acceptHeader, 'text/markdown') !== false;
     }
 
