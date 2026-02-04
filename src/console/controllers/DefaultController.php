@@ -65,8 +65,6 @@ class DefaultController extends Controller
         $html = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
-        // curl_close() is deprecated in PHP 8.4+ as handles are automatically closed
-        unset($ch);
 
         if ($html === false || $httpCode !== 200) {
             $this->stdout("Error: Failed to fetch URL (HTTP {$httpCode}): {$error}\n", Console::FG_RED);

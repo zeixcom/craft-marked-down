@@ -10,7 +10,6 @@ use craft\web\Request;
 use craft\web\Response;
 use craft\web\View;
 use yii\base\Event;
-use yii\web\Application;
 use zeix\craftmarkeddown\models\Settings;
 use zeix\craftmarkeddown\services\MarkdownService;
 
@@ -20,8 +19,8 @@ use zeix\craftmarkeddown\services\MarkdownService;
  * @method static MarkedDown getInstance()
  * @method Settings getSettings()
  * @method MarkdownService getMarkdownService()
- * @author zeix <webmaster@zeix.com>
- * @copyright zeix
+ * @author Fabian Häfliger
+ * @copyright https://zeix.com
  * @license MIT
  */
 class MarkedDown extends Plugin
