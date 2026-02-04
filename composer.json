@@ -3,10 +3,21 @@
   "description": "Marked Down detects Accept headers and user agents to serve raw Markdown to command-line tools and APIs, while browsers get the full HTML treatment. Perfect for documentation sites, blogs, and content that needs to work everywhere",
   "type": "craft-plugin",
   "version": "1.0.0",
-  "license": "mit",
+  "keywords": [
+    "craft",
+    "cms",
+    "craftcms",
+    "craft-plugin",
+    "markdown",
+    "content-negotiation",
+    "html-to-markdown"
+  ],
   "support": {
+    "docs": "https://github.com/zeixcom/craft-marked-down/blob/main/README.md",
+    "issues": "https://github.com/zeixcom/craft-marked-down/issues",
     "email": "webmaster@zeix.com"
   },
+  "license": "mit",
   "authors": [
     {
       "name": "Zeix AG",
@@ -31,6 +42,7 @@
     "handle": "marked-down",
     "name": "Marked Down",
     "developer": "Zeix AG",
+    "developerUrl": "https://zeix.com",
     "documentationUrl": "https://github.com/zeixcom/craft-marked-down/blob/main/README.md",
     "class": "zeix\\craftmarkeddown\\MarkedDown"
   },

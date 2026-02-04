@@ -32,8 +32,6 @@ Marked Down uses HTTP content negotiation to serve clean, semantic Markdown when
 - **AI training** - Offer clean content for AI model training datasets
 - **Command-line tools** - Enable CLI users to read your content in their terminal
 
-Perfect for any site where content matters more than chrome.
-
 ## Installation
 
 ### Standard Installation
