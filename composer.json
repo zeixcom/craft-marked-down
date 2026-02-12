@@ -2,7 +2,7 @@
   "name": "zeix/craft-marked-down",
   "description": "Marked Down detects Accept headers and user agents to serve raw Markdown to command-line tools and APIs, while browsers get the full HTML treatment. Perfect for documentation sites, blogs, and content that needs to work everywhere",
   "type": "craft-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "keywords": [
     "craft",
     "cms",

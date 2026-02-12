@@ -46,6 +46,19 @@ class Settings extends Model
     /**
      * @inheritdoc
      */
+    public function fields(): array
+    {
+        $fields = parent::fields();
+
+        $fields['excludePathsString'] = 'excludePaths';
+        $fields['includeOnlyPathsString'] = 'includeOnlyPaths';
+
+        return $fields;
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function rules(): array
     {
         return [
@@ -83,8 +96,13 @@ class Settings extends Model
     /**
      * Set exclude paths from a newline-separated string
      */
-    public function setExcludePathsString(string $value): void
+    public function setExcludePathsString(string|array $value): void
     {
+        if (is_array($value)) {
+            $this->excludePaths = array_values($value);
+            return;
+        }
+
         $paths = array_filter(
             array_map('trim', explode("\n", $value)),
             fn($path) => !empty($path)
@@ -106,10 +124,15 @@ class Settings extends Model
     /**
      * Set include-only paths from a newline-separated string
      */
-    public function setIncludeOnlyPathsString(?string $value): void
+    public function setIncludeOnlyPathsString(string|array|null $value): void
     {
-        if (empty($value)) {
+        if ($value === null || $value === '') {
             $this->includeOnlyPaths = null;
+            return;
+        }
+
+        if (is_array($value)) {
+            $this->includeOnlyPaths = empty($value) ? null : array_values($value);
             return;
         }
 
