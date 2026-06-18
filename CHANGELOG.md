@@ -1,6 +1,6 @@
 # Release Notes for Marked Down
 
-## 1.1.0 - Unreleased
+## 1.1.0 - 2026-06-18
 ### Added
 - Per-section settings in project config: enable/disable, AI-bots-only mode, optional dedicated Markdown template, front matter toggle.
 - `.md` URL suffix routing for entries and section listing pages.

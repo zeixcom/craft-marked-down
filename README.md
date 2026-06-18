@@ -52,25 +52,31 @@ ddev craft plugin/install marked-down
 
 ## How It Works
 
-Marked Down uses **HTTP content negotiation** - a standard web protocol where clients tell servers what format they prefer. When a request includes the `Accept: text/markdown` header, the plugin automatically converts your HTML response to clean Markdown.
+Marked Down serves the same entry as Markdown when a client asks for it, and as normal HTML otherwise. A request is served Markdown when **any** of these is true:
+
+1. **`.md` URL suffix** — append `.md` to any entry URL (e.g. `/blog/my-article.md`).
+2. **`Accept: text/markdown`** header — standard HTTP content negotiation.
+3. **AI bot User-Agent** — the request comes from a known crawler (GPTBot, ClaudeBot, PerplexityBot, and others; configurable).
+
+Everything else gets HTML, untouched. On HTML pages the plugin also injects a `<link rel="alternate" type="text/markdown">` tag so Markdown-aware clients can discover the `.md` version, and Markdown responses carry `X-Robots-Tag: noindex` so they don't compete with your canonical HTML in search.
 
 ### Quick Test
 
-Try it with curl:
-
 ```bash
-# Get Markdown
+# .md suffix
+curl https://yoursite.com/blog/my-article.md
+
+# Accept header
 curl -H "Accept: text/markdown" https://yoursite.com/blog/my-article
 
-# Get HTML (default)
+# As an AI bot
+curl -A "GPTBot/1.0" https://yoursite.com/blog/my-article
+
+# Normal browser request — unchanged HTML
 curl https://yoursite.com/blog/my-article
 ```
 
-**What happens behind the scenes:**
-
-1. Plugin checks if request has `Accept: text/markdown` header
-2. If yes: Extracts main content, converts to Markdown
-3. If no: Serves normal HTML (zero impact on regular traffic)
+Each Markdown response is prefixed with YAML front matter (title, date, author, canonical URL, section) and has navigation, headers, footers, and scripts stripped out.
 
 ## Configuration
 
@@ -80,8 +86,22 @@ Navigate to **Settings → Plugins → Marked Down**:
 
 - **Enable Marked Down**: Toggle the plugin on/off
 - **Excluded Paths**: Paths that always serve HTML (e.g., `/admin`, `/actions/*`)
-- **Include Only Paths**: (Optional) Restrict Markdown to specific paths
+- **Include Only Paths**: (Optional) Restrict Markdown to specific paths. Leave empty to allow all paths — if set, **only** matching paths serve Markdown.
+- **AI Bot User-Agents**: The crawler patterns that trigger Markdown (matched case-insensitively against the User-Agent).
 - **Caching**: Enable caching and set cache duration (default: 24 hours)
+
+### Per-section settings
+
+Each section can be configured independently (stored in project config, keyed by section UID so it survives renames and syncs across environments):
+
+- **Enabled**: Serve Markdown for this section at all (default: on).
+- **AI-bots-only**: Serve Markdown *only* to detected AI bots. Humans hitting the `.md` URL or sending `Accept: text/markdown` still get HTML — useful when you want crawlers fed but the `.md` URLs kept out of public reach.
+- **Dedicated template**: Point a section at a Twig template that outputs raw Markdown directly, bypassing HTML→Markdown conversion entirely. Receives the `entry` variable.
+- **Front matter**: Toggle the YAML front-matter block per section.
+
+### llms.txt
+
+Marked Down publishes a `/llms.txt` site index following the [llms.txt spec](https://llmstxt.org/) — a per-section list of recent entries linking to their `.md` URLs, so AI tools can discover your Markdown content from one file. Configure the number of entries per section in the plugin settings (`llmsTxtEntriesPerSection`, default 20).
 
 ### Config File
 
