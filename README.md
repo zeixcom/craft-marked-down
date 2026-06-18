@@ -122,6 +122,18 @@ return [
 
 **Note:** Complex selectors like descendant selectors (`.parent .child`) or pseudo-classes (`:hover`) are not currently supported. See `config.example.php` for more details.
 
+### Caching & front matter
+
+- **Body conversion is cached** (keyed per URL, `cacheDuration` default 24h) and
+  **automatically invalidated when the entry is saved or deleted**. Editing an
+  entry refreshes its Markdown immediately; editing the *Twig template* does not
+  fire a save, so run `marked-down/default/cache-clear` (or re-save the entry) to
+  pick up template changes.
+- **YAML front matter is generated fresh on every request** (it is not cached),
+  so title/date/author always reflect the entry's current state.
+- The `author` field is included **only when the entry has an author assigned** —
+  empty fields are omitted to keep the front matter valid and clean.
+
 ## CLI Commands
 
 Marked Down includes powerful command-line tools for testing and debugging:

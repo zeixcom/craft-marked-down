@@ -7,6 +7,7 @@ use League\HTMLToMarkdown\HtmlConverter;
 use League\HTMLToMarkdown\Environment;
 use League\HTMLToMarkdown\Converter\TableConverter;
 use yii\base\Component;
+use yii\caching\TagDependency;
 
 /**
  * Markdown Service
@@ -33,8 +34,12 @@ class MarkdownService extends Component
      * @param string|null $templatePath Optional template path for template-specific exclusions
      * @return string The Markdown content
      */
-    public function convertHtmlToMarkdown(string $html, ?string $cacheKey = null, ?string $templatePath = null): string
-    {
+    public function convertHtmlToMarkdown(
+        string $html,
+        ?string $cacheKey = null,
+        ?string $templatePath = null,
+        ?int $entryId = null
+    ): string {
         if (empty($html)) {
             return '';
         }
@@ -64,7 +69,12 @@ class MarkdownService extends Component
         $markdown = $this->cleanMarkdown($markdown);
 
         if ($settings->enableCache && isset($cacheKey)) {
-            $cache->set($cacheKey, $markdown, $settings->cacheDuration);
+            $tags = ['marked-down'];
+            if ($entryId !== null) {
+                $tags[] = 'marked-down:entry:' . $entryId;
+            }
+            $dependency = new TagDependency(['tags' => $tags]);
+            $cache->set($cacheKey, $markdown, $settings->cacheDuration, $dependency);
         }
 
         return $markdown;
@@ -344,6 +354,12 @@ class MarkdownService extends Component
         $markdown = str_replace(["\r\n", "\r"], "\n", $markdown);
         
         $markdown = html_entity_decode($markdown, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // A heading the converter glued onto the end of preceding inline text
+        // (e.g. "Blog# Insights" from <span>Blog</span><h1>Insights</h1>) needs
+        // its own line. ponytail: naive — also splits a literal "C# foo"; fine
+        // for prose, and headings are far more common than mid-line hashes.
+        $markdown = preg_replace('/(\S)(#{1,6}\s)/', "$1\n\n$2", $markdown);
 
         $markdown = preg_replace('/!\s+\[/', '![', $markdown);
 
