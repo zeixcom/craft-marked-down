@@ -1,5 +1,9 @@
 # Release Notes for Marked Down
 
+## 1.1.1 - 2026-08-24
+### Changed
+- Updated the plugin icon: aubergine badge with a white M and down arrow.
+
 ## 1.1.0 - 2026-06-18
 ### Added
 - Per-section settings in project config: enable/disable, AI-bots-only mode, optional dedicated Markdown template, front matter toggle.

@@ -2,7 +2,7 @@
   "name": "zeix/craft-marked-down",
   "description": "Marked Down serves Markdown to AI crawlers, command-line tools, and APIs while browsers get HTML. Zero-config per-section setup, automatic AI bot detection, .md URL suffix, /llms.txt, YAML front matter, and dedicated Markdown templates — out of the box.",
   "type": "craft-plugin",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "keywords": [
     "craft",
     "cms",
