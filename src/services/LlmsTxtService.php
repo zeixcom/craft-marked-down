@@ -77,11 +77,7 @@ class LlmsTxtService extends Component
                 if (!$url) {
                     continue;
                 }
-                // Append `.md`, never trim. For `https://site/foo`  → `…/foo.md`.
-                // For homepage `https://site/`  → `https://site/.md` (the
-                // EVENT_BEFORE_REQUEST handler strips `.md` from path, leaving
-                // empty path, which Craft routes to the homepage entry).
-                $mdUrl = $url . '.md';
+                $mdUrl = MarkedDown::markdownUrl($url);
                 $lines[] = '- [' . $this->escape($entry->title) . '](' . $mdUrl . ')';
             }
             $lines[] = '';
