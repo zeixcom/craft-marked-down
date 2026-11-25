@@ -4,6 +4,7 @@ namespace zeix\craftmarkeddown\services;
 
 use Craft;
 use craft\elements\Entry;
+use craft\helpers\StringHelper;
 use craft\models\Section;
 use yii\base\Component;
 use zeix\craftmarkeddown\MarkedDown;
@@ -32,10 +33,10 @@ class LlmsTxtService extends Component
         $sectionsService = Craft::$app->getEntries();
 
         $lines = [];
-        $lines[] = '# ' . ($this->singleLine($settings->llmsTxtTitle[$site->handle] ?? '') ?: $site->getName());
+        $lines[] = '# ' . (StringHelper::collapseWhitespace($settings->llmsTxtTitle[$site->handle] ?? '') ?: $site->getName());
         $lines[] = '';
 
-        $summary = $this->singleLine($settings->llmsTxtSummary[$site->handle] ?? '');
+        $summary = StringHelper::collapseWhitespace($settings->llmsTxtSummary[$site->handle] ?? '');
         if ($summary !== '') {
             $lines[] = '> ' . $summary;
             $lines[] = '';
@@ -62,14 +63,11 @@ class LlmsTxtService extends Component
                 ->status(Entry::STATUS_LIVE)
                 ->limit($perSection);
 
-            // Structure sections keep their editorial order. Others list the
-            // newest first and fall back to the title so entries without a
-            // distinguishing post date have a stable order.
-            if ($section->type === Section::TYPE_STRUCTURE) {
-                $query->orderBy(['structureelements.lft' => SORT_ASC]);
-            } else {
-                $query->orderBy(['postDate' => SORT_DESC, 'title' => SORT_ASC]);
-            }
+            // The title tiebreak keeps entries with equal or missing post dates
+            // in a stable order.
+            $query->orderBy($section->type === Section::TYPE_STRUCTURE
+                ? ['structureelements.lft' => SORT_ASC]
+                : ['postDate' => SORT_DESC, 'title' => SORT_ASC]);
 
             $entries = $query->all();
             if (empty($entries)) {
@@ -91,15 +89,6 @@ class LlmsTxtService extends Component
         }
 
         return rtrim(implode("\n", $lines)) . "\n";
-    }
-
-    /**
-     * Collapse whitespace so a multi-line value cannot break the heading or
-     * blockquote it is rendered into.
-     */
-    private function singleLine(string $text): string
-    {
-        return trim((string)preg_replace('/\s+/', ' ', $text));
     }
 
     private function escape(string $text): string

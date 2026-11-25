@@ -192,6 +192,14 @@ class MarkedDown extends Plugin
         Event::on(Elements::class, Elements::EVENT_AFTER_SAVE_ELEMENT, $invalidate);
         Event::on(Elements::class, Elements::EVENT_AFTER_DELETE_ELEMENT, $invalidate);
 
+        // Settings feed /llms.txt (titles, summaries, section toggles). Both a
+        // CP save and a deploy applying project.yaml end up here.
+        $invalidateLlms = fn() => TagDependency::invalidate(Craft::$app->getCache(), ['marked-down:llms']);
+        Craft::$app->getProjectConfig()
+            ->onAdd('plugins.marked-down.settings', $invalidateLlms)
+            ->onUpdate('plugins.marked-down.settings', $invalidateLlms)
+            ->onRemove('plugins.marked-down.settings', $invalidateLlms);
+
         // When a section is removed from project config (e.g. via a deploy
         // applying project.yaml from another environment), drop its settings.
         Craft::$app->getProjectConfig()
@@ -364,12 +372,6 @@ class MarkedDown extends Plugin
         }
 
         return !empty($acceptHeader) && stripos($acceptHeader, 'text/markdown') !== false;
-    }
-
-    public function afterSaveSettings(): void
-    {
-        parent::afterSaveSettings();
-        TagDependency::invalidate(Craft::$app->getCache(), ['marked-down:llms']);
     }
 
     /**
