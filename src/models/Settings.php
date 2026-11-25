@@ -89,6 +89,18 @@ class Settings extends Model
     public int $llmsTxtEntriesPerSection = 20;
 
     /**
+     * @var array<string,string> H1 of /llms.txt per site, keyed by site handle.
+     * Falls back to the site name when empty.
+     */
+    public array $llmsTxtTitle = [];
+
+    /**
+     * @var array<string,string> Summary blockquote of /llms.txt per site,
+     * keyed by site handle. Omitted when empty.
+     */
+    public array $llmsTxtSummary = [];
+
+    /**
      * @var bool Whether to cache Markdown output.
      */
     public bool $enableCache = true;
@@ -103,7 +115,7 @@ class Settings extends Model
         return [
             [['enabled', 'enableCache', 'injectDiscoveryLink', 'noIndexMarkdown', 'llmsTxtEnabled'], 'boolean'],
             [['cacheDuration', 'llmsTxtEntriesPerSection'], 'integer', 'min' => 0],
-            [['excludePaths', 'includeOnlyPaths', 'aiBotPatterns', 'sectionSettings'], 'safe'],
+            [['excludePaths', 'includeOnlyPaths', 'aiBotPatterns', 'sectionSettings', 'llmsTxtTitle', 'llmsTxtSummary'], 'safe'],
             [['excludePathsString', 'includeOnlyPathsString', 'aiBotPatternsString'], 'safe'],
         ];
     }
@@ -130,6 +142,8 @@ class Settings extends Model
             'noIndexMarkdown' => 'noIndexMarkdown',
             'llmsTxtEnabled' => 'llmsTxtEnabled',
             'llmsTxtEntriesPerSection' => 'llmsTxtEntriesPerSection',
+            'llmsTxtTitle' => 'llmsTxtTitle',
+            'llmsTxtSummary' => 'llmsTxtSummary',
             'enableCache' => 'enableCache',
             'cacheDuration' => 'cacheDuration',
         ];
@@ -157,6 +171,13 @@ class Settings extends Model
         if (isset($values['aiBotPatterns']) && is_string($values['aiBotPatterns'])) {
             $lines = $this->splitLines($values['aiBotPatterns']);
             $values['aiBotPatterns'] = empty($lines) ? self::DEFAULT_AI_BOT_PATTERNS : $lines;
+        }
+        // Skip empty per-site values so a save does not write empty keys for
+        // every site into project config.
+        foreach (['llmsTxtTitle', 'llmsTxtSummary'] as $key) {
+            if (isset($values[$key]) && is_array($values[$key])) {
+                $values[$key] = array_filter($values[$key], fn($v) => is_string($v) && trim($v) !== '');
+            }
         }
         if (isset($values['sectionSettings']) && is_array($values['sectionSettings'])) {
             // Convert nested arrays into SectionSettings models so the

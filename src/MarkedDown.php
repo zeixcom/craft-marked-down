@@ -13,6 +13,7 @@ use craft\events\RegisterUrlRulesEvent;
 use craft\events\TemplateEvent;
 use craft\services\Elements;
 use craft\services\ProjectConfig;
+use craft\services\Structures;
 use craft\web\Request;
 use craft\web\Response;
 use craft\web\UrlManager;
@@ -191,6 +192,20 @@ class MarkedDown extends Plugin
         };
         Event::on(Elements::class, Elements::EVENT_AFTER_SAVE_ELEMENT, $invalidate);
         Event::on(Elements::class, Elements::EVENT_AFTER_DELETE_ELEMENT, $invalidate);
+
+        // Reordering a structure changes the /llms.txt order without saving
+        // the entries themselves.
+        Event::on(Structures::class, Structures::EVENT_AFTER_MOVE_ELEMENT, function () {
+            TagDependency::invalidate(Craft::$app->getCache(), ['marked-down:llms']);
+        });
+
+        // Settings feed /llms.txt (titles, summaries, section toggles). Both a
+        // CP save and a deploy applying project.yaml end up here.
+        $invalidateLlms = fn() => TagDependency::invalidate(Craft::$app->getCache(), ['marked-down:llms']);
+        Craft::$app->getProjectConfig()
+            ->onAdd('plugins.marked-down.settings', $invalidateLlms)
+            ->onUpdate('plugins.marked-down.settings', $invalidateLlms)
+            ->onRemove('plugins.marked-down.settings', $invalidateLlms);
 
         // When a section is removed from project config (e.g. via a deploy
         // applying project.yaml from another environment), drop its settings.

@@ -1,5 +1,18 @@
 # Release Notes for Marked Down
 
+## 1.2.0 - Unreleased
+### Added
+- `llmsTxtTitle` and `llmsTxtSummary` settings (per site) for the H1 and the summary blockquote of `/llms.txt`.
+
+### Changed
+- `/llms.txt` skips sections that have no live entries on the current site. It no longer prints `_No entries yet._`.
+- `/llms.txt` sorts structure sections by structure order. Other sections sort by post date, then by title.
+- Reordering a structure clears the `/llms.txt` cache.
+- Changing the plugin settings, in the control panel or through a project config deploy, now clears the `/llms.txt` cache. Before, changes showed up only after the cache expired or an entry was saved.
+
+### Removed
+- `LlmsTxtService::summary()`. Use the `llmsTxtSummary` setting. A subclass that overrides it no longer has an effect.
+
 ## 1.1.2 - Unreleased
 ### Fixed
 - The homepage discovery link pointed to a different domain (`https://example.ch.md`). Site homepages now use `<base>/index.md`.

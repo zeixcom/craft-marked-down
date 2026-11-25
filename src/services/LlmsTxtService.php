@@ -4,6 +4,8 @@ namespace zeix\craftmarkeddown\services;
 
 use Craft;
 use craft\elements\Entry;
+use craft\helpers\StringHelper;
+use craft\models\Section;
 use yii\base\Component;
 use zeix\craftmarkeddown\MarkedDown;
 
@@ -12,9 +14,9 @@ use zeix\craftmarkeddown\MarkedDown;
  *
  * Output shape:
  *
- *   # {Site name}
+ *   # {llmsTxtTitle setting, or the site name}
  *
- *   > Optional summary blockquote.
+ *   > {llmsTxtSummary setting, omitted when empty}
  *
  *   ## {Section name}
  *
@@ -31,10 +33,10 @@ class LlmsTxtService extends Component
         $sectionsService = Craft::$app->getEntries();
 
         $lines = [];
-        $lines[] = '# ' . $site->getName();
+        $lines[] = '# ' . (StringHelper::collapseWhitespace($settings->llmsTxtTitle[$site->handle] ?? '') ?: $site->getName());
         $lines[] = '';
 
-        $summary = $this->summary();
+        $summary = StringHelper::collapseWhitespace($settings->llmsTxtSummary[$site->handle] ?? '');
         if ($summary !== '') {
             $lines[] = '> ' . $summary;
             $lines[] = '';
@@ -55,44 +57,43 @@ class LlmsTxtService extends Component
                 continue;
             }
 
-            $lines[] = '## ' . $section->name;
-            $lines[] = '';
-
-            $entries = Entry::find()
+            $query = Entry::find()
                 ->section($section)
                 ->siteId($site->id)
                 ->status(Entry::STATUS_LIVE)
-                ->orderBy(['postDate' => SORT_DESC])
-                ->limit($perSection)
-                ->all();
+                ->limit($perSection);
 
+            // The title tiebreak keeps entries with equal or missing post dates
+            // in a stable order.
+            $query->orderBy($section->type === Section::TYPE_STRUCTURE
+                ? ['structureelements.lft' => SORT_ASC]
+                : ['postDate' => SORT_DESC, 'title' => SORT_ASC]);
+
+            $entries = $query->all();
             if (empty($entries)) {
-                $lines[] = '_No entries yet._';
-                $lines[] = '';
                 continue;
             }
 
+            $bullets = [];
             foreach ($entries as $entry) {
                 $url = $entry->getUrl();
                 if (!$url) {
                     continue;
                 }
                 $mdUrl = MarkedDown::markdownUrl($url);
-                $lines[] = '- [' . $this->escape($entry->title) . '](' . $mdUrl . ')';
+                $bullets[] = '- [' . $this->escape($entry->title) . '](' . $mdUrl . ')';
             }
+            if (empty($bullets)) {
+                continue;
+            }
+
+            $lines[] = '## ' . $section->name;
+            $lines[] = '';
+            array_push($lines, ...$bullets);
             $lines[] = '';
         }
 
         return rtrim(implode("\n", $lines)) . "\n";
-    }
-
-    /**
-     * Optional one-line site summary. Override or extend if you want a real
-     * blurb. Returning '' suppresses the blockquote.
-     */
-    protected function summary(): string
-    {
-        return '';
     }
 
     private function escape(string $text): string

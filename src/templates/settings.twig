@@ -160,6 +160,44 @@
   }) }}
 </div>
 
+<h3>{{ 'Title and summary per site'|t('marked-down') }}</h3>
+<p class="light">{{ 'The title is the H1 of /llms.txt and defaults to the site name. The summary is the optional blockquote below it.'|t('marked-down') }}</p>
+
+<table class="data fullwidth">
+  <thead>
+    <tr>
+      <th scope="col">{{ 'Site'|t('marked-down') }}</th>
+      <th scope="col">{{ 'Title'|t('marked-down') }}</th>
+      <th scope="col">{{ 'Summary'|t('marked-down') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for site in craft.app.sites.allSites %}
+      <tr>
+        <th scope="row">
+          <strong>{{ site.name }}</strong><br />
+          <code class="light">{{ site.handle }}</code>
+        </th>
+        <td>
+          {{ forms.text({
+            name: 'llmsTxtTitle[' ~ site.handle ~ ']',
+            value: settings.llmsTxtTitle[site.handle] ?? '',
+            placeholder: site.name,
+            size: 30,
+          }) }}
+        </td>
+        <td>
+          {{ forms.text({
+            name: 'llmsTxtSummary[' ~ site.handle ~ ']',
+            value: settings.llmsTxtSummary[site.handle] ?? '',
+            size: 50,
+          }) }}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
 <hr />
 
 <h2>{{ 'Caching'|t('marked-down') }}</h2>
