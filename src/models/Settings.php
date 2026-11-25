@@ -205,6 +205,7 @@ class Settings extends Model
             }
             $model = new SectionSettings();
             $model->setAttributes([
+                // A stored entry without the key predates opt-in and was enabled.
                 'enabled' => (bool)($data['enabled'] ?? true),
                 'aiOnly' => (bool)($data['aiOnly'] ?? false),
                 'dedicatedTemplate' => $data['dedicatedTemplate'] ?? null,

@@ -5,6 +5,7 @@
 - `llmsTxtTitle` and `llmsTxtSummary` settings (per site) for the H1 and the summary blockquote of `/llms.txt`.
 
 ### Changed
+- Sections are opt-in. A section without stored settings is now disabled. A migration keeps existing sections enabled, so an update changes nothing for them. New installs and sections created later start disabled. On an environment with `allowAdminChanges` off, the migration writes nothing. Run `craft up` where admin changes are allowed and deploy the updated `project.yaml`, or its sections turn off.
 - `/llms.txt` skips sections that have no live entries on the current site. It no longer prints `_No entries yet._`.
 - `/llms.txt` sorts structure sections by structure order. Other sections sort by post date, then by title.
 - Reordering a structure clears the `/llms.txt` cache.
