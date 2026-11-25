@@ -205,7 +205,7 @@ class Settings extends Model
             }
             $model = new SectionSettings();
             $model->setAttributes([
-                'enabled' => (bool)($data['enabled'] ?? true),
+                'enabled' => (bool)($data['enabled'] ?? false),
                 'aiOnly' => (bool)($data['aiOnly'] ?? false),
                 'dedicatedTemplate' => $data['dedicatedTemplate'] ?? null,
                 'includeFrontMatter' => (bool)($data['includeFrontMatter'] ?? true),

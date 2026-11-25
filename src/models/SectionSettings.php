@@ -15,8 +15,9 @@ class SectionSettings extends Model
 {
     /**
      * @var bool Whether Markdown serving is enabled for this section.
+     *           Opt-in: sections start disabled.
      */
-    public bool $enabled = true;
+    public bool $enabled = false;
 
     /**
      * @var bool When true, Markdown is only served to detected AI bots —

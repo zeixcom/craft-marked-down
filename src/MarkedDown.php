@@ -39,7 +39,7 @@ use zeix\craftmarkeddown\services\MarkdownService;
  */
 class MarkedDown extends Plugin
 {
-    public string $schemaVersion = '1.1.0';
+    public string $schemaVersion = '1.2.0';
     public bool $hasCpSettings = true;
 
     /**

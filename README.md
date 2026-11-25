@@ -94,7 +94,7 @@ Navigate to **Settings → Plugins → Marked Down**:
 
 Each section can be configured independently (stored in project config, keyed by section UID so it survives renames and syncs across environments):
 
-- **Enabled**: Serve Markdown for this section at all (default: on).
+- **Enabled**: Serve Markdown for this section at all. Sections are opt-in and start disabled.
 - **AI-bots-only**: Serve Markdown *only* to detected AI bots. Humans hitting the `.md` URL or sending `Accept: text/markdown` still get HTML — useful when you want crawlers fed but the `.md` URLs kept out of public reach.
 - **Dedicated template**: Point a section at a Twig template that outputs raw Markdown directly, bypassing HTML→Markdown conversion entirely. Receives the `entry` variable.
 - **Front matter**: Toggle the YAML front-matter block per section.
