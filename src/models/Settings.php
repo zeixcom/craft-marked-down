@@ -172,6 +172,13 @@ class Settings extends Model
             $lines = $this->splitLines($values['aiBotPatterns']);
             $values['aiBotPatterns'] = empty($lines) ? self::DEFAULT_AI_BOT_PATTERNS : $lines;
         }
+        // Skip empty per-site values so a save does not write empty keys for
+        // every site into project config.
+        foreach (['llmsTxtTitle', 'llmsTxtSummary'] as $key) {
+            if (isset($values[$key]) && is_array($values[$key])) {
+                $values[$key] = array_filter($values[$key], fn($v) => is_string($v) && trim($v) !== '');
+            }
+        }
         if (isset($values['sectionSettings']) && is_array($values['sectionSettings'])) {
             // Convert nested arrays into SectionSettings models so the
             // typed-property assignment in parent gets the right shape.

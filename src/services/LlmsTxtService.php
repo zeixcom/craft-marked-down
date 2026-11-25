@@ -14,9 +14,9 @@ use zeix\craftmarkeddown\MarkedDown;
  *
  * Output shape:
  *
- *   # {Site name}
+ *   # {llmsTxtTitle setting, or the site name}
  *
- *   > Optional summary blockquote.
+ *   > {llmsTxtSummary setting, omitted when empty}
  *
  *   ## {Section name}
  *
@@ -74,17 +74,22 @@ class LlmsTxtService extends Component
                 continue;
             }
 
-            $lines[] = '## ' . $section->name;
-            $lines[] = '';
-
+            $bullets = [];
             foreach ($entries as $entry) {
                 $url = $entry->getUrl();
                 if (!$url) {
                     continue;
                 }
                 $mdUrl = MarkedDown::markdownUrl($url);
-                $lines[] = '- [' . $this->escape($entry->title) . '](' . $mdUrl . ')';
+                $bullets[] = '- [' . $this->escape($entry->title) . '](' . $mdUrl . ')';
             }
+            if (empty($bullets)) {
+                continue;
+            }
+
+            $lines[] = '## ' . $section->name;
+            $lines[] = '';
+            array_push($lines, ...$bullets);
             $lines[] = '';
         }
 
