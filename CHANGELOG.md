@@ -1,5 +1,14 @@
 # Release Notes for Marked Down
 
+## 1.1.2 - Unreleased
+### Fixed
+- The homepage discovery link pointed to a different domain (`https://example.ch.md`). Site homepages now use `<base>/index.md`.
+- `/llms.txt` listed the homepage as `/.md`, which common web server dotfile rules block. It now uses `<base>/index.md`.
+- Discovery link no longer includes the query string.
+
+### Notes
+- `index.md` is now reserved for the site homepage. An entry with the URI `index` directly under a site root cannot be served as Markdown.
+
 ## 1.1.1 - 2026-08-24
 ### Changed
 - Updated the plugin icon: aubergine badge with a white M and down arrow.

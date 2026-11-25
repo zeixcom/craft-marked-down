@@ -136,7 +136,7 @@ class MarkedDown extends Plugin
                 if (!str_ends_with($path, '.md')) {
                     return;
                 }
-                $newPath = substr($path, 0, -3);
+                $newPath = self::resolveMarkdownPath(substr($path, 0, -3));
 
                 // Craft\web\Request::getPathInfo() returns the private _path
                 // field, ignoring Yii's _pathInfo. We have to mutate _path
@@ -367,6 +367,31 @@ class MarkedDown extends Plugin
     }
 
     /**
+     * Build the Markdown alternate URL for a page URL of the current site.
+     * The site homepage maps to `<base>/index.md`: appending `.md` to the bare
+     * host would produce a different domain (`example.ch.md`), and `/.md` is
+     * blocked by dotfile rules in common web server configs. Query string and
+     * fragment are dropped.
+     */
+    public static function markdownUrl(string $url): string
+    {
+        $clean = rtrim((string)strtok($url, '?#'), '/');
+        $basePath = trim((string)parse_url((string)Craft::$app->getSites()->getCurrentSite()->getBaseUrl(), PHP_URL_PATH), '/');
+        $path = trim((string)parse_url($clean, PHP_URL_PATH), '/');
+
+        return $path === $basePath ? $clean . '/index.md' : $clean . '.md';
+    }
+
+    /**
+     * Map a path with its `.md` suffix removed back to the routable path.
+     * Craft has already removed the site base path, so `index` is the homepage.
+     */
+    public static function resolveMarkdownPath(string $path): string
+    {
+        return $path === 'index' ? '' : $path;
+    }
+
+    /**
      * On an HTML response, inject <link rel="alternate" type="text/markdown">
      * into <head> so Markdown-aware clients can find the .md alternate.
      */
@@ -391,7 +416,7 @@ class MarkedDown extends Plugin
             return;
         }
 
-        $mdUrl = rtrim($request->getAbsoluteUrl(), '/') . '.md';
+        $mdUrl = self::markdownUrl($request->getAbsoluteUrl());
         $tag = '<link rel="alternate" type="text/markdown" href="'
             . htmlspecialchars($mdUrl, ENT_QUOTES | ENT_HTML5, 'UTF-8')
             . '">';
