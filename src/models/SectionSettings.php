@@ -15,7 +15,6 @@ class SectionSettings extends Model
 {
     /**
      * @var bool Whether Markdown serving is enabled for this section.
-     *           Opt-in: sections start disabled.
      */
     public bool $enabled = false;
 
