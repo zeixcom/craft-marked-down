@@ -4,6 +4,7 @@ namespace zeix\craftmarkeddown\services;
 
 use Craft;
 use craft\elements\Entry;
+use craft\models\Section;
 use yii\base\Component;
 use zeix\craftmarkeddown\MarkedDown;
 
@@ -31,10 +32,10 @@ class LlmsTxtService extends Component
         $sectionsService = Craft::$app->getEntries();
 
         $lines = [];
-        $lines[] = '# ' . $site->getName();
+        $lines[] = '# ' . ($this->singleLine($settings->llmsTxtTitle[$site->handle] ?? '') ?: $site->getName());
         $lines[] = '';
 
-        $summary = $this->summary();
+        $summary = $this->singleLine($settings->llmsTxtSummary[$site->handle] ?? '');
         if ($summary !== '') {
             $lines[] = '> ' . $summary;
             $lines[] = '';
@@ -55,22 +56,28 @@ class LlmsTxtService extends Component
                 continue;
             }
 
-            $lines[] = '## ' . $section->name;
-            $lines[] = '';
-
-            $entries = Entry::find()
+            $query = Entry::find()
                 ->section($section)
                 ->siteId($site->id)
                 ->status(Entry::STATUS_LIVE)
-                ->orderBy(['postDate' => SORT_DESC])
-                ->limit($perSection)
-                ->all();
+                ->limit($perSection);
 
+            // Structure sections keep their editorial order. Others list the
+            // newest first and fall back to the title so entries without a
+            // distinguishing post date have a stable order.
+            if ($section->type === Section::TYPE_STRUCTURE) {
+                $query->orderBy(['structureelements.lft' => SORT_ASC]);
+            } else {
+                $query->orderBy(['postDate' => SORT_DESC, 'title' => SORT_ASC]);
+            }
+
+            $entries = $query->all();
             if (empty($entries)) {
-                $lines[] = '_No entries yet._';
-                $lines[] = '';
                 continue;
             }
+
+            $lines[] = '## ' . $section->name;
+            $lines[] = '';
 
             foreach ($entries as $entry) {
                 $url = $entry->getUrl();
@@ -87,12 +94,12 @@ class LlmsTxtService extends Component
     }
 
     /**
-     * Optional one-line site summary. Override or extend if you want a real
-     * blurb. Returning '' suppresses the blockquote.
+     * Collapse whitespace so a multi-line value cannot break the heading or
+     * blockquote it is rendered into.
      */
-    protected function summary(): string
+    private function singleLine(string $text): string
     {
-        return '';
+        return trim((string)preg_replace('/\s+/', ' ', $text));
     }
 
     private function escape(string $text): string

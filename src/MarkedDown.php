@@ -366,6 +366,12 @@ class MarkedDown extends Plugin
         return !empty($acceptHeader) && stripos($acceptHeader, 'text/markdown') !== false;
     }
 
+    public function afterSaveSettings(): void
+    {
+        parent::afterSaveSettings();
+        TagDependency::invalidate(Craft::$app->getCache(), ['marked-down:llms']);
+    }
+
     /**
      * Build the Markdown alternate URL for a page URL of the current site.
      * The site homepage maps to `<base>/index.md`: appending `.md` to the bare

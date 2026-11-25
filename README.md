@@ -103,6 +103,10 @@ Each section can be configured independently (stored in project config, keyed by
 
 Marked Down publishes a `/llms.txt` site index following the [llms.txt spec](https://llmstxt.org/) — a per-section list of recent entries linking to their `.md` URLs, so AI tools can discover your Markdown content from one file. Configure the number of entries per section in the plugin settings (`llmsTxtEntriesPerSection`, default 20).
 
+- **Title and summary:** set `llmsTxtTitle` and `llmsTxtSummary` per site in the plugin settings. The title defaults to the site name. The summary is the optional blockquote under the title. Both are keyed by site handle, so you can also set them in `config/marked-down.php`, for example `'llmsTxtTitle' => ['default' => 'Example AG', 'en' => 'Example']`.
+- **Order:** structure sections keep their structure order. Other sections list the newest entries first, then sort by title.
+- **Empty sections** are left out.
+
 ### Config File
 
 Create `config/marked-down.php` to exclude specific CSS selectors from Markdown output:
