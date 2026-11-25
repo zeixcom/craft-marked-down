@@ -1,6 +1,6 @@
 # Release Notes for Marked Down
 
-## 1.2.0 - Unreleased
+## 1.2.0 - 2026-11-25
 ### Added
 - `llmsTxtTitle` and `llmsTxtSummary` settings (per site) for the H1 and the summary blockquote of `/llms.txt`.
 
@@ -14,7 +14,6 @@
 ### Removed
 - `LlmsTxtService::summary()`. Use the `llmsTxtSummary` setting. A subclass that overrides it no longer has an effect.
 
-## 1.1.2 - Unreleased
 ### Fixed
 - The homepage discovery link pointed to a different domain (`https://example.ch.md`). Site homepages now use `<base>/index.md`.
 - `/llms.txt` listed the homepage as `/.md`, which common web server dotfile rules block. It now uses `<base>/index.md`.
