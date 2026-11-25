@@ -94,7 +94,7 @@ Navigate to **Settings → Plugins → Marked Down**:
 
 Each section can be configured independently (stored in project config, keyed by section UID so it survives renames and syncs across environments):
 
-- **Enabled**: Serve Markdown for this section at all. Sections are opt-in and start disabled.
+- **Enabled**: Serve Markdown for this section at all. Sections are opt-in and start disabled. A stored entry that has no `enabled` key counts as enabled, which keeps configs written before opt-in working.
 - **AI-bots-only**: Serve Markdown *only* to detected AI bots. Humans hitting the `.md` URL or sending `Accept: text/markdown` still get HTML — useful when you want crawlers fed but the `.md` URLs kept out of public reach.
 - **Dedicated template**: Point a section at a Twig template that outputs raw Markdown directly, bypassing HTML→Markdown conversion entirely. Receives the `entry` variable.
 - **Front matter**: Toggle the YAML front-matter block per section.
@@ -105,7 +105,7 @@ Marked Down publishes a `/llms.txt` site index following the [llms.txt spec](htt
 
 - **Title and summary:** set `llmsTxtTitle` and `llmsTxtSummary` per site in the plugin settings. The title defaults to the site name. The summary is the optional blockquote under the title. Both are keyed by site handle, so you can also set them in `config/marked-down.php`, for example `'llmsTxtTitle' => ['default' => 'Example AG', 'en' => 'Example']`.
 - **Order:** structure sections keep their structure order. Other sections list the newest entries first, then sort by title.
-- **Empty sections** are left out.
+- **Empty sections** are left out. Only enabled sections are listed, so a new install shows no sections until you turn some on.
 
 ### Config File
 
